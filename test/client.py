@@ -13,8 +13,9 @@ while True:
 
     # send image to server using POST request
     # response = requests.post('http://1.55.36.6:5000/predict', data=img_encoded.tostring())
-    response = requests.post('http://172.20.10.2:5000/predict', data=img_encoded.tostring())
+    # response = requests.post('http://172.20.10.2:5000/predict', data=img_encoded.tostring())
     # response = requests.post('http://192.168.1.135:5000/predict', data=img_encoded.tostring())
+    response = requests.post('http://10.10.1.67:5000/predict', data=img_encoded.tostring())
     response = json.loads(response.text)
     if response == 1:
         print("Open")
