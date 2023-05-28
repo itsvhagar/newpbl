@@ -8,6 +8,8 @@ import json
 GPIO.setmode(GPIO.BCM)
 GPIO.setwarnings(False)
 camera = cv2.VideoCapture(0)
+# camera2 = cv2.VideoCapture(1)
+
 
 buzzer_pin = 14
 led_pin1 = 17
@@ -15,6 +17,9 @@ button_pin1 = 2
 
 led_pin2 = 22
 button_pin2 = 4
+
+# button for xinhan
+isToggle = False
 
 GPIO.setup(buzzer_pin, GPIO.OUT)
 
@@ -28,7 +33,8 @@ GPIO.setup(button_pin2, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 GPIO.output(led_pin1, GPIO.LOW)
 GPIO.output(led_pin2, GPIO.LOW)
 
-counter = 0
+faceCounter = 0
+laneCounter = 0
 
 
 def beep(duration):
@@ -38,11 +44,19 @@ def beep(duration):
 
 
 while True:
+    # webcam1
     ret, frame = camera.read()
     _, img_encoded = cv2.imencode('.jpg', frame)
+
+    # webcam 2
+    # ret2, frame2 = camera.read()
+    # _, img_encoded2 = cv2.imencode('.jpg', frame2)
+
+    # face request
     response = requests.post(
-        'http://192.168.0.8:5000/predict', data=img_encoded.tostring())
+        'http://10.10.1.47:5000/predict', data=img_encoded.tostring())
     response = json.loads(response.text)
+
 
     input_state1 = GPIO.input(button_pin1)
     input_state2 = GPIO.input(button_pin2)
@@ -51,6 +65,7 @@ while True:
         print("Error: Both Buttons Pressed")
     elif not input_state1:
         # Button 1 has been pressed
+        isToggle = not isToggle
         led_state = GPIO.input(led_pin1)  # Get current LED state
         # Toggle LED state
         if led_state == GPIO.HIGH:
@@ -61,6 +76,7 @@ while True:
         while not GPIO.input(button_pin1):
             time.sleep(0.000001)
     elif not input_state2:
+        isToggle = not isToggle
         # Button 2 has been pressed
         led_state = GPIO.input(led_pin2)  # Get current LED state
         # Toggle LED state
@@ -71,21 +87,56 @@ while True:
             # Wait for button release
         while not GPIO.input(button_pin2):
             time.sleep(0.000001)
+
+    # face handle event
     elif response == 2:
         print("Face not Detected!")
-        counter = 0
+        faceCounter = 0
     elif response == 1:
-        counter = 0
-        print("Open ", counter)
+        faceCounter = 0
+        print("Open ", faceCounter)
     elif response == 0:
-        counter += 1
-        if counter == 4:
-           beep(0.1)
-           # reset counter
-           counter = 0
-        print("close ", counter)
+        faceCounter += 1
+        if faceCounter == 4:
+            # beep(0.1)
+            # reset faceCounter
+            faceCounter = 0
+        print("close ", faceCounter)
     if cv2.waitKey(1) == 27:
         break
+    time.sleep(0.025)
+
+
+
+
+    # if ko bat xi nhan then handle lane event
+    if(not isToggle):
+        # lane request
+
+        # responseLane = requests.post(
+        # 'http://192.168.0.8:5000/lane', data=img_encoded.tostring())
+        # responseLane = json.loads(responseLane.text)
+
+
+        # for testing
+        responseLane = 1
+
+        # checking server msg
+        if responseLane == 2:
+            print("Lane not Detected!")
+            laneCounter = 0
+        elif response == 1:
+            laneCounter = 0
+            print("True lane", laneCounter)
+        elif response == 0:
+            laneCounter += 1
+            if laneCounter == 2:
+                beep(0.1)
+                # reset counter
+                laneCounter = 0
+            print("False lane ", laneCounter)
+        if cv2.waitKey(1) == 27:
+            break
     time.sleep(0.025)
 
 camera.release()
