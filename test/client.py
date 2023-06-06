@@ -27,7 +27,7 @@ def Show_camera(ret, frame):
     result =cv2.addWeighted(frame, 0.8, mask, 1, 1)
     if ret == True:
         cv2.imshow('Video', result)
-
+# camera = cv2.VideoCapture(0)
 # while True:
 #     # start_time = time.time()
 #     ret, frame = camera.read()
@@ -45,27 +45,31 @@ def Show_camera(ret, frame):
 #     image_bytes = cv2.imencode('.jpg', img)[1].tobytes()
 #     # send image to server using POST request
 #     response = requests.post('http://127.0.0.1:5000/predict_lane', data=img_encoded)
-    
+#     current_time = datetime.datetime.now()
+#     current_time_str = current_time.strftime("%Y-%m-%d %H:%M:%S.%f")
 #     # response = requests.post('http://127.0.0.1:5000/predict_lane', data=img_encoded)
 
 #     # response = requests.post('http://192.168.1.135:5000/predict', data=img_encoded.tostring())
 #     response = json.loads(response.text)
+#     print(current_time_str)
 #     if response == 1:
 #         print("true")
 #     elif response == 0:
 #         print("flase")
 #     elif response == 2: 
 #         print("No lane")
-#     # cv2.imshow("Client", frame)
-#     # end_time = time.time()
-#     # elapsed_time = end_time - start_time
-#     # print("Thời gian trôi qua: ", elapsed_time, "giây")
-#     # time.sleep(0.04)
+    
+# camera.release()
+    # cv2.imshow("Client", frame)
+    # end_time = time.time()
+    # elapsed_time = end_time - start_time
+    # print("Thời gian trôi qua: ", elapsed_time, "giây")
+    # time.sleep(0.04)
 
 
 
 def send_frames():
-    camera = cv2.VideoCapture(1)
+    camera = cv2.VideoCapture(0)
     while True:
         ret, frame = camera.read()
         frame = cv2.resize(frame, (width, height))
@@ -77,6 +81,7 @@ def send_frames():
         image_bytes = cv2.imencode('.jpg', img)[1].tobytes()
         # response = requests.post('http://127.0.0.1:5000/predict_lane', data=img_encoded)
         requests.post('http://127.0.0.1:5000/post_predict_lane', data=img_encoded)
+    camera.release()
         # time.sleep(0.1)
         # print('xong')
 
@@ -105,7 +110,7 @@ def receive_results():
             print("No lane")
         # elif response == 404:
         #     print()
-
+    
 def main():
     send_thread = threading.Thread(target=send_frames)
     receive_thread = threading.Thread(target=receive_results)
@@ -114,5 +119,4 @@ def main():
 
 main()
 
-camera.release()
 cv2.destroyAllWindows()
