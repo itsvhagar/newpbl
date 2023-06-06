@@ -27,7 +27,7 @@ def Show_camera(ret, frame):
     result =cv2.addWeighted(frame, 0.8, mask, 1, 1)
     if ret == True:
         cv2.imshow('Video', result)
-# camera = cv2.VideoCapture(0)
+
 # while True:
 #     # start_time = time.time()
 #     ret, frame = camera.read()
@@ -45,31 +45,28 @@ def Show_camera(ret, frame):
 #     image_bytes = cv2.imencode('.jpg', img)[1].tobytes()
 #     # send image to server using POST request
 #     response = requests.post('http://127.0.0.1:5000/predict_lane', data=img_encoded)
-#     current_time = datetime.datetime.now()
-#     current_time_str = current_time.strftime("%Y-%m-%d %H:%M:%S.%f")
+    
 #     # response = requests.post('http://127.0.0.1:5000/predict_lane', data=img_encoded)
 
 #     # response = requests.post('http://192.168.1.135:5000/predict', data=img_encoded.tostring())
 #     response = json.loads(response.text)
-#     print(current_time_str)
 #     if response == 1:
 #         print("true")
 #     elif response == 0:
 #         print("flase")
 #     elif response == 2: 
 #         print("No lane")
-    
-# camera.release()
-    # cv2.imshow("Client", frame)
-    # end_time = time.time()
-    # elapsed_time = end_time - start_time
-    # print("Thời gian trôi qua: ", elapsed_time, "giây")
-    # time.sleep(0.04)
+#     # cv2.imshow("Client", frame)
+#     # end_time = time.time()
+#     # elapsed_time = end_time - start_time
+#     # print("Thời gian trôi qua: ", elapsed_time, "giây")
+#     # time.sleep(0.04)
 
 
 
-def send_frames():
+def send_lane_predict():
     camera = cv2.VideoCapture(0)
+    camera.set(cv2.CAP_PROP_FPS, 60)
     while True:
         ret, frame = camera.read()
         frame = cv2.resize(frame, (width, height))
@@ -85,7 +82,7 @@ def send_frames():
         # time.sleep(0.1)
         # print('xong')
 
-def receive_results():
+def receive_lane_predict():
     # while True:
     #     print("Toan")
     while True:
@@ -110,12 +107,44 @@ def receive_results():
             print("No lane")
         # elif response == 404:
         #     print()
-    
+
+def concentration_predict():
+    camera = cv2.VideoCapture(1)
+    while True:
+        ret, frame = camera.read()
+
+        # encode image as JPEG
+        _, img_encoded = cv2.imencode('.jpg', frame)
+        cv2.imshow('Image 2', frame)
+        # cv2.imshow('Image 3', frame3)
+        # Nhấn phím 'q' để thoát
+        if cv2.waitKey(1) == ord('q'):
+            break
+
+        # send image to server using POST request
+        # response = requests.post('http://1.55.36.6:5000/predict', data=img_encoded.tostring())
+        # response = requests.post('http://172.20.10.2:5000/predict', data=img_encoded.tostring())
+        # response = requests.post('http://192.168.1.135:5000/predict', data=img_encoded.tostring())
+        response = requests.post('http://192.168.1.35:5000/predict', data=img_encoded.tostring())
+        response = json.loads(response.text)
+        # if response == 1:
+        #     print("Open")
+        # elif response == 0:
+        #     print("Close")
+        # elif response == 2: 
+        #     print("Didn't detect face")
+        
+        # # time.sleep(0.0015)
+
+    camera.release()
+
 def main():
-    send_thread = threading.Thread(target=send_frames)
-    receive_thread = threading.Thread(target=receive_results)
-    receive_thread.start()
-    send_thread.start()
+    send_lane_thread = threading.Thread(target=send_lane_predict)
+    receive_lane_thread = threading.Thread(target=receive_lane_predict)
+    concentration_thread = threading.Thread(target=concentration_predict)
+    receive_lane_thread.start()
+    send_lane_thread.start()
+    concentration_thread.start()
 
 main()
 
