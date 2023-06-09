@@ -3,11 +3,14 @@ import cv2
 import requests
 import time
 import json
+from concurrent.futures import ThreadPoolExecutor
 
 # Set up GPIO pins
 GPIO.setmode(GPIO.BCM)
 GPIO.setwarnings(False)
 camera = cv2.VideoCapture(0)
+# camera2 = cv2.VideoCapture(1)
+
 
 buzzer_pin = 14
 led_pin1 = 17
@@ -15,6 +18,15 @@ button_pin1 = 2
 
 led_pin2 = 22
 button_pin2 = 4
+
+
+camera = cv2.VideoCapture(0)
+
+isToggle = False
+
+
+# button for xinhan
+isToggle = False
 
 GPIO.setup(buzzer_pin, GPIO.OUT)
 
@@ -28,7 +40,8 @@ GPIO.setup(button_pin2, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 GPIO.output(led_pin1, GPIO.LOW)
 GPIO.output(led_pin2, GPIO.LOW)
 
-counter = 0
+faceCounter = 0
+laneCounter = 0
 
 
 def beep(duration):
@@ -37,56 +50,49 @@ def beep(duration):
     GPIO.output(buzzer_pin, GPIO.LOW)
 
 
+def handle_face_event(img_encoded):
+    response = requests.post(
+        'http://192.168.1.225:5000/predict', data=img_encoded.tostring())
+    response = json.loads(response.text)
+    if response == 2:
+        print("Face not Detected!")
+    elif response == 1:
+        print("Open ")
+    elif response == 0:
+        print("close ")
+
+
+def handle_lane_event(img_encode):
+    responseLane = requests.post(
+        'http://192.168.1.225:5000/lane', data=img_encoded.tostring())
+    responseLane = json.loads(responseLane.text)
+
+    if responseLane == 2:
+        print("Lane not Detected!")
+    elif responseLane == 1:
+        print("True lane")
+    elif responseLane == 0:
+        print("False lane ")
+
+
+executor = ThreadPoolExecutor(max_workers=2)
+
 while True:
+    # webcam1
     ret, frame = camera.read()
     _, img_encoded = cv2.imencode('.jpg', frame)
-    response = requests.post(
-        'http://192.168.0.8:5000/predict', data=img_encoded.tostring())
-    response = json.loads(response.text)
+    future_face = executor.submit(handle_face_event, img_encoded)
+    if (isToggle == True):
+        ret2, frame2 = camera.read()
+        _, img_encoded2 = cv2.imencode('.jpg', frame2)
+        # lane request
 
-    input_state1 = GPIO.input(button_pin1)
-    input_state2 = GPIO.input(button_pin2)
-    if not input_state1 and not input_state2:
-        # Both buttons have been pressed.
-        print("Error: Both Buttons Pressed")
-    elif not input_state1:
-        # Button 1 has been pressed
-        led_state = GPIO.input(led_pin1)  # Get current LED state
-        # Toggle LED state
-        if led_state == GPIO.HIGH:
-            GPIO.output(led_pin1, GPIO.LOW)
-        else:
-            GPIO.output(led_pin1, GPIO.HIGH)
-            # Wait for button release
-        while not GPIO.input(button_pin1):
-            time.sleep(0.000001)
-    elif not input_state2:
-        # Button 2 has been pressed
-        led_state = GPIO.input(led_pin2)  # Get current LED state
-        # Toggle LED state
-        if led_state == GPIO.HIGH:
-            GPIO.output(led_pin2, GPIO.LOW)
-        else:
-            GPIO.output(led_pin2, GPIO.HIGH)
-            # Wait for button release
-        while not GPIO.input(button_pin2):
-            time.sleep(0.000001)
-    elif response == 2:
-        print("Face not Detected!")
-        counter = 0
-    elif response == 1:
-        counter = 0
-        print("Open ", counter)
-    elif response == 0:
-        counter += 1
-        if counter == 4:
-           beep(0.1)
-           # reset counter
-           counter = 0
-        print("close ", counter)
+        # handle lane event
+        future_lane = executor.submit(handle_lane_event, img_encoded2)
+
     if cv2.waitKey(1) == 27:
         break
-    time.sleep(0.025)
+    time.sleep(1)
 
 camera.release()
 cv2.destroyAllWindows()
