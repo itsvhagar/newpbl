@@ -2,7 +2,7 @@ import time
 
 from flask import Flask,jsonify,request
 import flask
-from app import Drowsiness_Detection
+from face.app import Drowsiness_Detection
 
 app = Flask(__name__)
 model = Drowsiness_Detection()
