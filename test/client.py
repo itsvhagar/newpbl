@@ -8,6 +8,7 @@ from PIL import Image
 import threading
 import matplotlib.pyplot
 import datetime
+import os
 
 width = 1640
 height = 590
@@ -15,9 +16,30 @@ height = 590
 # camera.set(cv2.CAP_PROP_FRAME_WIDTH, 1640)
 # camera.set(cv2.CAP_PROP_FRAME_HEIGHT, 590)
 # camera.set(cv2.CAP_PROP_FPS, 60)
+TRAIN_DATA = 'D:\\Project\\PBL\\PBL5\\test\\data\\lane'
 
-filename_path = 'lane_model/KiemThu/1.jpg'
-img = numpy.array(Image.open(filename_path))
+def DocDuLieu(file):
+    DuLieu = []
+    Label = []
+    label = ''
+    for file in os.listdir(TRAIN_DATA):
+        if (file == 'test'):
+            file_path = os.path.join(TRAIN_DATA, file)
+            list_filename_path = []
+            label = file
+            for filename in os.listdir(file_path):
+                if (".jpg" in filename or ".png" in filename):
+                    filename_path = os.path.join(file_path, filename)
+                    img = numpy.array(Image.open(filename_path))
+                    # img = cv2.resize(img, (width, height))
+                    # img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+                    list_filename_path.append(img)
+                    # Label.append(dict[(label)])
+            DuLieu.extend(list_filename_path)
+    return DuLieu, Label
+Xtrain, Ytrain = DocDuLieu(TRAIN_DATA)
+# filename_path = 'lane_model/KiemThu/1.jpg'
+# img = numpy.array(Image.open(filename_path))
 
 def Show_camera(ret, frame):
     polygons = numpy.array([[(535, 415), (1185, 415), (822, 280), (788, 280)]])
@@ -75,9 +97,13 @@ def send_lane_predict():
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
         img_encoded = cv2.imencode('.jpg', frame)[1].tobytes()
-        image_bytes = cv2.imencode('.jpg', img)[1].tobytes()
+        # image_bytes = cv2.imencode('.jpg', img)[1].tobytes()
         # response = requests.post('http://127.0.0.1:5000/predict_lane', data=img_encoded)
         requests.post('http://127.0.0.1:5000/post_predict_lane', data=img_encoded)
+        # for i in Xtrain:
+        #     image_bytes= cv2.flip(i, 1)
+        #     image_bytes = cv2.imencode('.jpg', i)[1].tobytes()
+        #     requests.post('http://127.0.0.1:5000/post_predict_lane', data=image_bytes)
     camera.release()
         # time.sleep(0.1)
         # print('xong')
@@ -96,14 +122,14 @@ def receive_lane_predict():
         # print('nhan')
         current_time = datetime.datetime.now()
         current_time_str = current_time.strftime("%Y-%m-%d %H:%M:%S.%f")
-        if response == 1:
-            print(current_time_str)
-            print("true")
-        elif response == 0:
-            print(current_time_str)
-            print("flase")
+        if response == 0:
+            # print(current_time_str)
+            print("right lane")
+        elif response == 1:
+            # print(current_time_str)
+            print("wrong lan")
         elif response == 2: 
-            print(current_time_str)
+            # print(current_time_str)
             print("No lane")
         # elif response == 404:
         #     print()
@@ -144,7 +170,7 @@ def main():
     concentration_thread = threading.Thread(target=concentration_predict)
     receive_lane_thread.start()
     send_lane_thread.start()
-    concentration_thread.start()
+    # concentration_thread.start()
 
 main()
 
